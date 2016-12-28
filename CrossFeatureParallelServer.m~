@@ -1,0 +1,142 @@
+%% Texture Classification with SVM
+clc, clear;
+
+%% Load Kylber Mat Texture Dataset
+
+load('Kylberg.mat');
+
+%% Prepare Classes for labeling and seperation into train and test groups
+[M N] = size(Kylberg_Dataset);
+temp = cell(M/12, 1);
+cnt = 1;
+
+for i = 1:12:M
+        
+    temp(cnt) = Kylberg_Dataset(i, 3);
+    cnt = cnt + 1;
+ 
+end
+
+O = size(temp);
+cnt = 1;
+
+for j = 1:10:O
+   
+        train_Label(cnt) = temp(j,1);
+        cnt = cnt + 1;
+    
+end
+
+
+cnt = 1;
+
+for k = 2:5:O
+     
+     test_Label(cnt) = temp(k, 1);
+     cnt = cnt + 1;
+     
+end
+    
+train_Label = train_Label';
+test_Label = test_Label';
+
+
+%% Labeling classes
+cnt = 1;
+
+for i = 1:size(test_Label, 1)-1
+    
+    next = strtok(test_Label(i+1), '-');
+    actual = strtok(test_Label(i), '-');
+    
+    if(strcmpi(next, actual)) 
+        
+        test(i) = cnt;
+        test_name(i) = actual;
+    else
+        test(i) = cnt;
+        test_name(i) = actual;
+        cnt = cnt + 1;
+        
+        
+    end
+    
+end
+
+cnt = 1;
+
+for i = 1:size(train_Label, 1)-1
+    
+    next = strtok(train_Label(i+1), '-');
+    actual = strtok(train_Label(i), '-');
+    
+    if(strcmpi(next, actual)) 
+     
+        train(i) = cnt;
+        train_name(i) = actual;
+    else
+        train(i) = cnt;
+        train_name(i) = actual;
+        cnt = cnt + 1;
+        
+        
+    end
+    
+end
+
+test = test';
+train = train';
+test_name = test_name';
+train_name = train_name';
+
+
+%% Cross Feature Extraction
+
+%Cell Array for Feature Vectors
+CF_train = cell(size(train, 1), 1);
+CF_test = cell(size(test, 1), 1);
+
+hbar = parfor_progressbar(size(train, 1),'Please wait...'); %create the progress bar 
+
+parfor n = 1:size(train, 1) 
+    
+    CF_train{n} = CrossFeature(imread(strcat(pwd, '/Kylberg', '/', train_name{n}, '/',train_Label{n})), 21, 1);
+    hbar.iterate(1); % update progress by one iteration 
+    X = sprintf('%d% completed', hbar.percent());
+    disp(X);
+end
+
+
+hbar2 = parfor_progressbar(size(train, 1),'Please wait...'); %create the progress bar 
+
+parfor n = 1:size(test, 1)
+    
+    CF_test{n} = CrossFeature(imread(strcat(pwd, '/Kylberg', '/', test_name{n}, '/',test_Label{n})), 21, 1);
+    hbar2.iterate(1); % update progress by one iteration 
+    X = sprintf('%d completed', hbar2.percent());
+    disp(X);
+end
+
+
+%% Creating Training Matrix for SVM
+%load('LBPF_test.mat');
+%load('LBPF_train.mat');
+
+trainData = cell2mat(CF_train);
+testData = cell2mat(CF_test); 
+
+%%
+% #######################
+% Parameter selection using 3-fold cross validation
+% #######################
+bestcv = 0;
+for log2c = -8:1:8,
+  for log2g = -8:1:8,
+    cmd = ['-q -c ', num2str(2^log2c), ' -g ', num2str(2^log2g)];
+    cv = get_cv_ac(train, trainData, cmd, 3);
+    if (cv >= bestcv),
+      bestcv = cv; bestc = 2^log2c; bestg = 2^log2g;
+    end
+    fprintf('%g %g %g (best c=%g, g=%g, rate=%g)\n', log2c, log2g, cv, bestc, bestg, bestcv);
+  end
+end
