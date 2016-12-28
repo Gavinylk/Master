@@ -1,6 +1,6 @@
 %% Texture Classification with SVM
 addpath(genpath('/home/saraei/Documents/MATLAB/TextureClassification/'));
-run vlfeat-0.9.20/toolbox/vl_setup
+run /home/saraei/Documents/MATLAB/TextureClassification/vlfeat-0.9.20/toolbox/vl_setup
 clc, clear;
 delete(gcp('nocreate'));
 c = parcluster('local');
@@ -487,7 +487,7 @@ parfor_progress(size(FV_train, 1));
  
 for n = 1:size(FV_train, 1) 
       
-    [FV_train_gmm{n, :}] = vl_gmm(double(imresize(rgb2gray(imread(strcat(pwd, '/DTD/images', '/', train_name{n}))), [512 512])), 35);
+    [FV_train_gmm{n, :}] = vl_gmm(double(imresize(rgb2gray(imread(strcat('/home/saraei/Documents/MATLAB/TextureClassification/DTD/images', '/', train_name{n}))), [512 512])), 35);
     
     parfor_progress;
      
@@ -515,8 +515,8 @@ for n = 1:size(test_name, 1)
     
          %FV_train{n} = Fisher(double(CrossFeature(imresize(rgb2gray(imread(strcat(pwd, '/DTD/images', '/', train_name{n}))), [512 512]), 9, 3)), FV_train_gmm{iter_s(k), 1}, FV_train_gmm{iter_s(k), 2}, FV_train_gmm{iter_s(k), 3});
          %FV_test{n} = Fisher(double(CrossFeature(imresize(rgb2gray(imread(strcat(pwd, '/DTD/images', '/', test_name{n}))), [512 512]), 9, 3)), FV_train_gmm{iter_s(k), 1}, FV_train_gmm{iter_s(k), 2}, FV_train_gmm{iter_s(k), 3});
-         FV_train{n} = Fisher(double(imresize(rgb2gray(imread(strcat(pwd, '/DTD/images', '/', train_name{n}))), [512 512])), m{k}, c{k}, p{k});
-         FV_test{n} = Fisher(double(imresize(rgb2gray(imread(strcat(pwd, '/DTD/images', '/', test_name{n}))), [512 512])), m{k}, c{k}, p{k});
+         FV_train{n} = Fisher(double(imresize(rgb2gray(imread(strcat('/home/saraei/Documents/MATLAB/TextureClassification/DTD/images', '/', train_name{n}))), [512 512])), m{k}, c{k}, p{k});
+         FV_test{n} = Fisher(double(imresize(rgb2gray(imread(strcat('/home/saraei/Documents/MATLAB/TextureClassification/DTD/images', '/', test_name{n}))), [512 512])), m{k}, c{k}, p{k});
 
          if(n == iter_s(k) && k ~= 47) k = k + 1; end
         
