@@ -1,6 +1,6 @@
 %% Texture Classification with SVM
-addpath(genpath('/home/saraei/Documents/MATLAB/TextureClassification/'));
-run /home/saraei/Documents/MATLAB/TextureClassification/vlfeat-0.9.20/toolbox/vl_setup
+addpath(genpath('/home/saraei/Documents/MATLAB/TextureClassification/Code/libsvm-3.21-local'));
+run /home/saraei/Documents/MATLAB/TextureClassification/Code/vlfeat-0.9.20/toolbox/vl_setup
 clc, clear;
 delete(gcp('nocreate'));
 c = parcluster('local');
@@ -8,91 +8,91 @@ c.NumWorkers = 8;
 parpool(c, c.NumWorkers);
 %% Load Kylber Mat Texture Dataset
 
-%load('Kylberg.mat');
+load('Kylberg.mat');
 load('imdb.mat');
 %% Prepare Classes for labeling and seperation into train and test groups of Kylberg
-% [M N] = size(Kylberg_Dataset);
-% temp = cell(M/12, 1);
-% cnt = 1;
-% 
-% for i = 1:12:M
-%         
-%     temp(cnt) = Kylberg_Dataset(i, 3);
-%     cnt = cnt + 1;
-%  
-% end
-% 
-% O = size(temp);
-% cnt = 1;
-% 
-% for j = 1:10:O
-%    
-%         train_Label(cnt) = temp(j,1);
-%         cnt = cnt + 1;
-%     
-% end
-% 
-% 
-% cnt = 1;
-% 
-% for k = 2:5:O
-%      
-%      test_Label(cnt) = temp(k, 1);
-%      cnt = cnt + 1;
-%      
-% end
-%     
-% train_Label = train_Label';
-% test_Label = test_Label';
-% 
-% 
-% % Labeling classes
-% cnt = 1;
-% 
-% for i = 1:size(test_Label, 1)-1
-%     
-%     next = strtok(test_Label(i+1), '-');
-%     actual = strtok(test_Label(i), '-');
-%     
-%     if(strcmpi(next, actual)) 
-%         
-%         test(i) = cnt;
-%         test_name(i) = actual;
-%     else
-%         test(i) = cnt;
-%         test_name(i) = actual;
-%         cnt = cnt + 1;
-%         
-%         
-%     end
-%     
-% end
-% 
-% cnt = 1;
-% 
-% for i = 1:size(train_Label, 1)-1
-%     
-%     next = strtok(train_Label(i+1), '-');
-%     actual = strtok(train_Label(i), '-');
-%     
-%     if(strcmpi(next, actual)) 
-%      
-%         train(i) = cnt;
-%         train_name(i) = actual;
-%     else
-%         train(i) = cnt;
-%         train_name(i) = actual;
-%         cnt = cnt + 1;
-%         
-%         
-%     end
-%     
-% end
-% 
-% test = test';
-% train = train';
-% test_name = test_name';
-% train_name = train_name';
+[M N] = size(Kylberg_Dataset);
+temp = cell(M/12, 1);
+cnt = 1;
+
+for i = 1:12:M
+        
+    temp(cnt) = Kylberg_Dataset(i, 3);
+    cnt = cnt + 1;
+ 
+end
+
+O = size(temp);
+cnt = 1;
+
+for j = 1:10:O
+   
+        train_Label(cnt) = temp(j,1);
+        cnt = cnt + 1;
+    
+end
+
+
+cnt = 1;
+
+for k = 2:5:O
+     
+     test_Label(cnt) = temp(k, 1);
+     cnt = cnt + 1;
+     
+end
+    
+train_Label = train_Label';
+test_Label = test_Label';
+
+
+% Labeling classes
+cnt = 1;
+
+for i = 1:size(test_Label, 1)-1
+    
+    next = strtok(test_Label(i+1), '-');
+    actual = strtok(test_Label(i), '-');
+    
+    if(strcmpi(next, actual)) 
+        
+        test(i) = cnt;
+        test_name(i) = actual;
+    else
+        test(i) = cnt;
+        test_name(i) = actual;
+        cnt = cnt + 1;
+        
+        
+    end
+    
+end
+
+cnt = 1;
+
+for i = 1:size(train_Label, 1)-1
+    
+    next = strtok(train_Label(i+1), '-');
+    actual = strtok(train_Label(i), '-');
+    
+    if(strcmpi(next, actual)) 
+     
+        train(i) = cnt;
+        train_name(i) = actual;
+    else
+        train(i) = cnt;
+        train_name(i) = actual;
+        cnt = cnt + 1;
+        
+        
+    end
+    
+end
+
+test = test';
+train = train';
+test_name = test_name';
+train_name = train_name';
 
 %% DTD Preparation
 cnt_train = 1;
@@ -473,61 +473,76 @@ test_label = test_label';
 % parfor_progress(0);
 
 %% Fisher GMM Feature Vector Extraction
-
+% Pre-Selection of the relevant images for GMM modelling
+G = preSelectionGMM(size(train_label, 1), 40, train_name);
+% G = preSelectionGMM(size(train_label, 1), 16, train_name, train_label);
+%%   
+disp('GMM training Phase for each class');
 % Cell Array for Feature Vectors
-FV_train_gmm = cell(size(train_name, 1), 3);
+FV_train_gmm = cell(47, 3);
+
+
+
+% Initialize Mean, Covariance and Prior for GMM
+% parfor_progress(47);
+% 
+% parfor n = 1:47
+%    
+%    %[m c p] = initGMM(LBP(logsample(double(imresize(rgb2gray(imread(strcat('/home/saraei/Documents/MATLAB/TextureClassification/DTD/images', '/', train_name{G(n)}))), [512 512])), 5, 256, 256, 256, [], 300), 2, 8, 1), 64);
+%    [m_new c_new p_new] = vl_gmm(LBP(logsample(double(imresize(rgb2gray(imread(strcat('/home/saraei/Documents/MATLAB/TextureClassification/DTD/images', '/', train_name{G(n)}))), [512 512])), 5, 256, 256, 256, [], 300), 2, 8, 1), 64);%vl_gmm(LBP(logsample(double(imresize(rgb2gray(imread(strcat('/home/saraei/Documents/MATLAB/TextureClassification/DTD/images', '/', train_name{G(n)}))), [512 512])), 5, 256, 256, 256, [], 300), 2, 8, 1), 64);
+%    %[m_new c_new p_new] = vl_gmm(LBP(logsample(double(imresize(rgb2gray(imread(strcat('/home/saraei/Documents/MATLAB/TextureClassification/Kylberg', '/', train_name{G(n)}, '/',train_label{G(n)}))), [512 512])), 5, 256, 256, 256, [], 300), 2, 8, 1), 64);
+%    FV_train_gmm(n, :) = {m_new, c_new, p_new};
+%    parfor_progress;
+%    
+% end
+% 
+% parfor_progress(0);
+
+%%
+disp('Fisher Encoding of training and test data with precalc GMM');
 FV_train = cell(size(train_name, 1), 1);
 FV_test = cell(size(test_name, 1), 1);
-% % load('SFTA_train_DTD.mat');
-% % load('SFTA_test_DTD.mat');
-
-
-disp('GMM training Phase for each class');
-parfor_progress(size(FV_train, 1));
- 
-for n = 1:size(FV_train, 1) 
-      
-    [FV_train_gmm{n, :}] = vl_gmm(double(imresize(rgb2gray(imread(strcat('/home/saraei/Documents/MATLAB/TextureClassification/DTD/images', '/', train_name{n}))), [512 512])), 35);
-    
-    parfor_progress;
-     
-end
-
-parfor_progress(0);
-%% 
-%acc = zeros(40, 1);
-%for o = 1:40
-%load(strcat(pwd, '/Mat', '/', 'FV_train_gmm_SIFT_30'));
-disp('Fisher Encoding of training and test data with precalc GMM');
-k = 1;
-iter_s = 1:40:size(test_name, 1);
-iter_e = 40:40:size(test_name, 1);
-m = cell(47, 1);
-c = cell(47, 1);
-p = cell(47, 1);
-
-[m c p] = computeLocalGMM(FV_train_gmm, size(test_name, 1), 'median');
 
 parfor_progress(size(test_name, 1));
 
-for n = 1:size(test_name, 1)
+% parfor n = 1:size(test_name, 1)
+% 
+%     if(mod(n,40) == 0)
+%          FV_train{n} = Fisher(LBP(logsample(double(imresize(rgb2gray(imread(strcat('/home/saraei/Documents/MATLAB/TextureClassification/DTD/images', '/', train_name{n}))), [512 512])),  5, 256, 256, 256, [], 300), 2, 8, 1), FV_train_gmm{n/40, 1}, FV_train_gmm{n/40, 2}, FV_train_gmm{n/40, 3});
+%          FV_test{n} = Fisher(LBP(logsample(double(imresize(rgb2gray(imread(strcat('/home/saraei/Documents/MATLAB/TextureClassification/DTD/images', '/', test_name{n}))), [512 512])),  5, 256, 256, 256, [], 300), 2, 8, 1), FV_train_gmm{n/40, 1}, FV_train_gmm{n/40, 2}, FV_train_gmm{n/40, 3});
+%     else
+%        FV_train{n} = Fisher(LBP(logsample(double(imresize(rgb2gray(imread(strcat('/home/saraei/Documents/MATLAB/TextureClassification/DTD/images', '/', train_name{n}))), [512 512])),  5, 256, 256, 256, [], 300), 2, 8, 1), FV_train_gmm{floor(n/40+1), 1}, FV_train_gmm{floor(n/40+1), 2}, FV_train_gmm{floor(n/40+1), 3});
+%          FV_test{n} = Fisher(LBP(logsample(double(imresize(rgb2gray(imread(strcat('/home/saraei/Documents/MATLAB/TextureClassification/DTD/images', '/', test_name{n}))), [512 512])),  5, 256, 256, 256, [], 300), 2, 8, 1), FV_train_gmm{floor(n/40+1), 1}, FV_train_gmm{floor(n/40+1), 2}, FV_train_gmm{floor(n/40+1), 3});
+%     end
+%         
+%        parfor_progress;
+%     
+% end
 
-    
-         %FV_train{n} = Fisher(double(CrossFeature(imresize(rgb2gray(imread(strcat(pwd, '/DTD/images', '/', train_name{n}))), [512 512]), 9, 3)), FV_train_gmm{iter_s(k), 1}, FV_train_gmm{iter_s(k), 2}, FV_train_gmm{iter_s(k), 3});
-         %FV_test{n} = Fisher(double(CrossFeature(imresize(rgb2gray(imread(strcat(pwd, '/DTD/images', '/', test_name{n}))), [512 512]), 9, 3)), FV_train_gmm{iter_s(k), 1}, FV_train_gmm{iter_s(k), 2}, FV_train_gmm{iter_s(k), 3});
-         FV_train{n} = Fisher(double(imresize(rgb2gray(imread(strcat('/home/saraei/Documents/MATLAB/TextureClassification/DTD/images', '/', train_name{n}))), [512 512])), m{k}, c{k}, p{k});
-         FV_test{n} = Fisher(double(imresize(rgb2gray(imread(strcat('/home/saraei/Documents/MATLAB/TextureClassification/DTD/images', '/', test_name{n}))), [512 512])), m{k}, c{k}, p{k});
-
-         if(n == iter_s(k) && k ~= 47) k = k + 1; end
-        
-       parfor_progress;
-    
+parfor n = 1:size(test_name, 1)
+   
+   FV_train{n} = Fisher(LBP(logsample(double(imresize(rgb2gray(imread(strcat('/home/saraei/Documents/MATLAB/TextureClassification/DTD/images', '/', train_name{n}))), [512 512])),  5, 256, 256, 256, [], 300), 2, 8, 1), m_new, c_new, p_new);
+   FV_test{n} = Fisher(LBP(logsample(double(imresize(rgb2gray(imread(strcat('/home/saraei/Documents/MATLAB/TextureClassification/DTD/images', '/', test_name{n}))), [512 512])),  5, 256, 256, 256, [], 300), 2, 8, 1), m_new, c_new, p_new);
+   parfor_progress;
+   
 end
+
+% parfor n = 1:size(test_name, 1)
+% 
+%     if(mod(n,40) == 0)
+%          FV_train{n} = Fisher(LBP(logsample(double(imresize(rgb2gray(imread(strcat('/home/saraei/Documents/MATLAB/TextureClassification/Kylberg', '/', train_name{G(n)}, '/',train_label{G(n)}))), [512 512])),  5, 256, 256, 256, [], 300), 2, 8, 1), FV_train_gmm{n/40, 1}, FV_train_gmm{n/40, 2}, FV_train_gmm{n/40, 3});
+%          FV_test{n} = Fisher(LBP(logsample(double(imresize(rgb2gray(imread(strcat('/home/saraei/Documents/MATLAB/TextureClassification/Kylberg', '/', test_name{G(n)}, '/',test_label{G(n)}))), [512 512])),  5, 256, 256, 256, [], 300), 2, 8, 1), FV_train_gmm{n/40, 1}, FV_train_gmm{n/40, 2}, FV_train_gmm{n/40, 3});
+%     else
+%        FV_train{n} = Fisher(LBP(logsample(double(imresize(rgb2gray(imread(strcat('/home/saraei/Documents/MATLAB/TextureClassification/Kylberg', '/', train_name{G(n)}, '/',train_label{G(n)}))), [512 512])),  5, 256, 256, 256, [], 300), 2, 8, 1), FV_train_gmm{floor(n/40+1), 1}, FV_train_gmm{floor(n/40+1), 2}, FV_train_gmm{floor(n/40+1), 3});
+%          FV_test{n} = Fisher(LBP(logsample(double(imresize(rgb2gray(imread(strcat('/home/saraei/Documents/MATLAB/TextureClassification/Kylberg', '/', test_name{G(n)}, '/',test_label{G(n)}))), [512 512])),  5, 256, 256, 256, [], 300), 2, 8, 1), FV_train_gmm{floor(n/40+1), 1}, FV_train_gmm{floor(n/40+1), 2}, FV_train_gmm{floor(n/40+1), 3});
+%     end
+%         
+%        parfor_progress;
+%     
+% end
 parfor_progress(0);
 
-% % Save trained Data to mat
-% % save('train_1.mat','FV_train'); 
-% % save('CF_test_Stride3_ROI9_L2.mat','CF_test'); 
+%%
 % Creating Training Matrix for SVM
 [FV_train FV_test] = adaptFV(FV_train, FV_test);
 
@@ -537,22 +552,22 @@ testData = cell2mat(FV_test);
 %trainData = double(trainData);
 %testData = double(testData);
 
-% Feature Vector dimension reduction with PCA
+%% Feature Vector dimension reduction with PCA
 
-% [eigenvectors, projected_data, eigenvalues] = pcaecon(trainData, 1880);
+% [eigenvectors, projected_data, eigenvalues] = pcaecon(trainData, size(trainData, 1));
 % [foo, feature_idx] = sort(eigenvalues, 'descend');
-% trainData = projected_data(:, feature_idx(1:50));
+% trainData = projected_data(:, feature_idx(1:1000));
 % 
-% [eigenvectors, projected_data, eigenvalues] = pcaecon(testData, 1880);
+% [eigenvectors, projected_data, eigenvalues] = pcaecon(testData, size(testData, 1));
 % [foo, feature_idx] = sort(eigenvalues, 'descend');
-% testData = projected_data(:, feature_idx(1:50));
-
-% Norm data to [0 1]
+% testData = projected_data(:, feature_idx(1:1000));
+% 
+% % Norm data to [0 1]
 % trainData = abs(trainData)./max(abs(trainData(:)));
 % testData = abs(testData)./max(abs(testData(:)));
-%% Classifying
+% Classifying
 
-[cv bestc bestg] = Classify(train_label, trainData, 3, [4:1:4], [5:1:5], 1);
+[cv bestc bestg] = Classify(train_label, trainData, 3, [1:1:5], [1:1:8], 1);
 
 %[bestc, bestg, bestcv] = automaticParameterSelection(double(train_label), double(trainData), 3);
 % %% Train the SVM in one-vs-rest (OVR) mode
@@ -569,5 +584,3 @@ model = ovrtrain(train_label, trainData, bestParam);
  %[predict_label, accuracy, prob_values] = ovrpredict(test_label, [(1:size(test_label, 1))' testData*trainData'], model);
 [predict_label, accuracy, prob_values] = ovrpredict(test_label, testData, model);
 fprintf('Accuracy = %g%%\n', accuracy * 100);
-% acc(o) = accuracy*100;
-% end

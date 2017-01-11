@@ -1,6 +1,10 @@
 iptsetpref('ImshowAxesVisible','on')
 theta = 0:180;
-[R,xp] = radon(F,theta);
-[R2,xp] = radon(F2,theta);
+for i = 1:80
+   [R,xp] = radon(FV_train_gmm{i,1},theta);
+   %figure, imagesc(R/norm(R, 1));
+   R = abs(R)/norm(R, 1);
+   meanR(i) = std(R(:)); 
+end
 
-figure, imagesc(R), figure, imagesc(R2);
+
