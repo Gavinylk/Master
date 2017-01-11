@@ -1,0 +1,1 @@
+tic,LBP(img, 2, 8, 1);,toc
